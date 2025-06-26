@@ -93,8 +93,22 @@ Use these references when assessing reports about deposit or redemption logic.
   `weightDeviationLimit` (see lines 378‑385 of `src/libraries/BasketManagerUtils.sol`).
 - `completeRebalance` also checks `_isTargetWeightMet` before finalising the rebalance (lines 430‑444 of the same file).
 - Since rebalances are entered and exited using the same weight deviation check, dust‑level deposits or redeems cannot
-  force infinite rebalance loops. Reports of contradictory thresholds causing DoS are outdated unless
- `_isRebalanceRequired` returns.
+  force infinite rebalance loops. Reports of contradictory thresholds causing DoS are outdated unless `_isRebalanceRequired` returns.
+
+## Rebalance Weight Snapshot and Retry Limit
+
+- `proposeRebalance` caches each basket's `getTargetWeights()` when forming
+  `basketTargetWeights` (`src/libraries/BasketManagerUtils.sol` lines 255‑261) and
+  hashes them into `rebalanceStatus.basketHash` (line 329).
+- `completeRebalance` verifies these arrays with `_validateBasketHash`
+  (line 409) and never re-fetches weights from the strategies during the
+  process.
+- When `_isTargetWeightMet` fails, the rebalance status resets to
+  `REBALANCE_PROPOSED` and `retryCount` is incremented (lines 431‑438).
+- After `retryLimit` attempts (`src/BasketManager.sol` line 178 sets the default
+  limit to 3), `_finalizeRebalance` runs even if weights still deviate.
+- Dynamic weight strategies therefore cannot cause indefinite DoS; at worst,
+  completion is delayed by `retryLimit * stepDelay` seconds.
 
 ## BasketToken BitFlag Management
 
