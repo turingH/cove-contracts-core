@@ -41,6 +41,14 @@ Use these references when assessing reports about deposit or redemption logic.
 - Thus, claims of a 6‑decimal oracle format or mismatched precision are false unless the code around these lines is
   modified.
 
+## AssetRegistry Responsibilities
+
+- `AssetRegistry` (`src/AssetRegistry.sol`) only manages asset lists and their enabled or paused status.
+- It exposes helpers like `addAsset`, `setAssetStatus`, `getAssets` and `getAssetsBitFlag` but **no price conversion logic**.
+- Conversions between token amounts and USD occur exclusively in `BasketManagerUtils` via `EulerRouter.getQuote`
+  (see `_processPendingDeposits` lines 1147‑1179 and `_calculateBasketValue` lines 1188‑1207).
+- Reports mentioning `_convertToUSD` or `_convertFromUSD` inside `AssetRegistry` are false unless new code adds such functions.
+
 ## External Trade Weight Enforcement
 
 - `completeRebalance` (`src/libraries/BasketManagerUtils.sol` line 395) ends the rebalance after the mandatory delay.
