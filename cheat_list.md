@@ -31,9 +31,12 @@ Use these references when assessing reports about deposit or redemption logic.
 - `_processExternalTrades` (line 420) applies the amounts returned from `_completeTokenSwap` to `basketBalanceOf`.
 - The balances are then re-evaluated via `_initializeBasketData` and `_isTargetWeightMet` (lines 428‑444). If any basket weight deviates beyond `weightDeviationLimit`, the function reverts and sets the status back to `REBALANCE_PROPOSED`.
 - `_validateExternalTrades` (lines 908‑991) merely simulates trades using their `minAmount`; the final weight check in `completeRebalance` must still pass with real claimed amounts.
+- As a result, finalization without calling `executeTokenSwap` is only possible when the baskets already meet their target weights or when the retry limit (`self.retryLimit`) has been reached.  Otherwise `_isTargetWeightMet` fails and the rebalance restarts.
 
 ## Token Swap Execution Authorization
 
 - `BasketManager.executeTokenSwap` (`src/BasketManager.sol` lines 412‑447) is protected by `onlyRole(_TOKENSWAP_EXECUTOR_ROLE)`. Unauthorized callers will revert via AccessControl.
-- The function validates the current status is `TOKEN_SWAP_PROPOSED` and ensures the passed `externalTrades` hash matches the stored proposal before setting the status to `TOKEN_SWAP_EXECUTED` and delegate-calling the adapter.
+- `proposeTokenSwap` (`src/libraries/BasketManagerUtils.sol` lines 347‑377) sets `rebalanceStatus.status` to `TOKEN_SWAP_PROPOSED` and stores a hash of the proposed trades.
+- `executeTokenSwap` verifies that the status is `TOKEN_SWAP_PROPOSED` and the hash matches before setting `rebalanceStatus.status` to `TOKEN_SWAP_EXECUTED` and calling the adapter.
+- `completeRebalance` only processes external trades when the status is `TOKEN_SWAP_EXECUTED`; otherwise the final weight check described above enforces execution.
 - Any report suggesting this function is publicly callable or lacks authorization checks is incorrect unless these lines change.
