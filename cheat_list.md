@@ -22,3 +22,11 @@ Use these references when assessing reports about deposit or redemption logic.
 - The testing `MockPriceOracle` returns quotes scaled by 1e18 (`test/utils/mocks/MockPriceOracle.sol` lines 13‑23), matching the production expectation.
 - `BasketManagerUtils` converts asset balances to USD by calling `EulerRouter.getQuote` and then mixes those results with `_WEIGHT_PRECISION = 1e18` (`src/libraries/BasketManagerUtils.sol` lines 60‑64 and 1188‑1207).
 - Therefore, any report claiming that oracle quotes use a 6‑decimal format or that a 6/18 decimal mismatch exists is incorrect unless new code explicitly changes the quote precision.
+
+## External Trade Weight Enforcement
+
+- `completeRebalance` (`src/libraries/BasketManagerUtils.sol` line 395) finalizes a rebalance after the delay period.
+- When external trades are executed, `_processExternalTrades` is called at line 420 to update `basketBalanceOf` with the actual amounts returned from `_completeTokenSwap`.
+- Immediately after processing swaps, the function re-runs `_initializeBasketData` and `_isTargetWeightMet` (lines 428‑444) to recompute basket values using real balances.
+- If any basket's weights exceed `weightDeviationLimit`, the rebalance status is reset to `REBALANCE_PROPOSED` and the transaction reverts, preventing proposals from understating `minAmount` to bypass weight checks.
+- `_validateExternalTrades` (lines 908‑991) only simulates trades using each trade's `minAmount`, so weight deviations must still pass the post-swap check in `completeRebalance`.
