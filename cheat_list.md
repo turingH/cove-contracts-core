@@ -18,9 +18,11 @@ automated reviews.
 
 ## Redemption Processing
 
-- Pending redemptions are processed in `BasketManagerUtils.sol` lines 648‑678. The function calculates a
-  `withdrawAmount` capped by the BasketManager's base-asset balance (lines 664‑665) and then calls
-  `BasketToken.fulfillRedeem` to burn shares and transfer assets.
+- Pending redemptions are processed in `BasketManagerUtils.sol` lines 648‑678. The function converts the
+  USD value owed to redeemers back into the basket's base asset using
+  `eulerRouter.getQuote` (lines 659‑663) and stores the result in `withdrawAmount`.
+- `withdrawAmount` is capped by the BasketManager's base‑asset balance (lines 664‑665) before
+  calling `BasketToken.fulfillRedeem` to burn shares and transfer assets.
 - No function pulls funds from external strategies when fulfilling redemptions; the assets are already held by the
   BasketManager.
 
@@ -83,12 +85,35 @@ Use these references when assessing reports about deposit or redemption logic.
 - `completeRebalance` also checks `_isTargetWeightMet` before finalising the rebalance (lines 430‑444 of the same file).
 - Since rebalances are entered and exited using the same weight deviation check, dust‑level deposits or redeems cannot
   force infinite rebalance loops. Reports of contradictory thresholds causing DoS are outdated unless
-  `_isRebalanceRequired` returns.
-## External Trade Validation Gas Limits
+ `_isRebalanceRequired` returns.
 
-- `proposeTokenSwap` calls `_validateExternalTrades` before recording the trade hash.
-- `_validateExternalTrades` iterates over every `ExternalTrade` and each entry in `basketTradeOwnership` while also calling `EulerRouter.getQuote` inside the inner loop (`src/libraries/BasketManagerUtils.sol` lines 917‑975).
-- These nested loops are expensive; extremely large arrays would exhaust gas in `proposeTokenSwap` itself and revert before any state is stored.
-- Because the arrays cannot be persisted when that validation fails, `_processExternalTrades` will never run with sizes large enough to exceed the block gas limit.
-- Reports claiming a permanent DoS due to unbounded loops in `_processExternalTrades` are false unless `_validateExternalTrades` is bypassed or removed.
+## BasketToken BitFlag Management
 
+- Basket tokens are deployed as clones of a fixed implementation stored in
+  `_bmStorage.basketTokenImplementation` when `BasketManager` is constructed
+  (`src/BasketManager.sol` lines 146‑176). This implementation address cannot be
+  changed later.
+- Each `BasketToken` stores its asset selection in the `bitFlag` state variable
+  (`src/BasketToken.sol` line 124) which is set during `initialize` when the
+  basket is created (`src/libraries/BasketManagerUtils.sol` lines 170‑223).
+- The only way to modify a basket's bitFlag after creation is via
+  `BasketManager.updateBitFlag` (`src/BasketManager.sol` lines 606‑659), which is
+  restricted to the `_TIMELOCK_ROLE` and simultaneously updates the manager's
+  `basketAssets` mappings.
+- `BasketToken.setBitFlag` (`src/BasketToken.sol` lines 496‑504) enforces that
+  only the Basket Manager can change the flag by calling `_onlyBasketManager`
+  (`src/BasketToken.sol` lines 669‑672).
+- Because the bitFlag cannot be arbitrarily altered or provided by user-controlled
+  implementations, checks such as
+  `AssetRegistry.hasPausedAssets(BasketToken(basket).bitFlag())` in
+  `proposeRebalance` (`src/libraries/BasketManagerUtils.sol` line 265) correctly
+  reflect the assets held by the basket. Reports that the pause mechanism can be
+  bypassed by tampering with `BasketToken.bitFlag()` are therefore false unless
+  these lines change.
+
+## Basket Array Length Verification
+
+- `_validateBasketHash` (`src/libraries/BasketManagerUtils.sol` lines 994-1021) is called from `proposeTokenSwap` (line 362) and `completeRebalance` (line 409).
+- The helper reverts with `BasketsMismatch` unless `baskets.length`, `basketsTargetWeights.length`, and `basketAssets.length` are all equal and every `basketAssets[i].length` matches `basketsTargetWeights[i].length`.
+- `_isTargetWeightMet` relies on these checks before looping over `basketAssets[i][j]` using the target weight length (lines 1045‑1128). Thus any mismatch fails fast with `BasketsMismatch`, preventing out-of-bounds reads.
+- Reports that a malformed weight array can freeze rebalances via array overflows are false unless these lines change.
