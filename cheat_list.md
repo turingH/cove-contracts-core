@@ -14,3 +14,11 @@ This file summarizes recurring patterns and repository-specific details that can
 - Pending redemptions are fulfilled by calculating a withdrawal amount (lines 648‑678 of `BasketManagerUtils.sol`) and calling `BasketToken.fulfillRedeem`, which burns shares and transfers assets from the BasketManager back to the token. This withdrawal logic is separate from the deposit flow above.
 
 Use these references when assessing reports about deposit or redemption logic.
+
+## External Trade Weight Enforcement
+
+- `completeRebalance` (`src/libraries/BasketManagerUtils.sol` line 395) finalizes a rebalance after the delay period.
+- When external trades are executed, `_processExternalTrades` is called at line 420 to update `basketBalanceOf` with the actual amounts returned from `_completeTokenSwap`.
+- Immediately after processing swaps, the function re-runs `_initializeBasketData` and `_isTargetWeightMet` (lines 428‑444) to recompute basket values using real balances.
+- If any basket's weights exceed `weightDeviationLimit`, the rebalance status is reset to `REBALANCE_PROPOSED` and the transaction reverts, preventing proposals from understating `minAmount` to bypass weight checks.
+- `_validateExternalTrades` (lines 908‑991) only simulates trades using each trade's `minAmount`, so weight deviations must still pass the post-swap check in `completeRebalance`.
