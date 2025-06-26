@@ -37,3 +37,10 @@ Use these references when assessing reports about deposit or redemption logic.
 - `BasketManager.executeTokenSwap` (`src/BasketManager.sol` lines 412‑447) is protected by `onlyRole(_TOKENSWAP_EXECUTOR_ROLE)`. Unauthorized callers will revert via AccessControl.
 - The function validates the current status is `TOKEN_SWAP_PROPOSED` and ensures the passed `externalTrades` hash matches the stored proposal before setting the status to `TOKEN_SWAP_EXECUTED` and delegate-calling the adapter.
 - Any report suggesting this function is publicly callable or lacks authorization checks is incorrect unless these lines change.
+
+## Swap Adapter Path Processing
+
+- Token swaps are implemented solely through `CoWSwapAdapter`. This contract loops over each `ExternalTrade` once and increments the loop counter after every iteration.
+- `executeTokenSwap` uses `for (uint256 i = 0; i < externalTrades.length;)` and increments `i` inside the loop (`src/swap_adapters/CoWSwapAdapter.sol` lines 79‑95).
+- `completeTokenSwap` follows the same pattern (`src/swap_adapters/CoWSwapAdapter.sol` lines 106‑137).
+- There is no function named `_processSwapPath` or any branch that `continue`s without advancing the index. Claims of an infinite loop due to skipped tokens are false unless new code introducing such logic appears.
