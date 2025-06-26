@@ -84,3 +84,9 @@ Use these references when assessing reports about deposit or redemption logic.
 - Since rebalances are entered and exited using the same weight deviation check, dust‑level deposits or redeems cannot
   force infinite rebalance loops. Reports of contradictory thresholds causing DoS are outdated unless
   `_isRebalanceRequired` returns.
+## Basket Array Length Verification
+
+- `_validateBasketHash` (`src/libraries/BasketManagerUtils.sol` lines 994-1021) is called from `proposeTokenSwap` (line 362) and `completeRebalance` (line 409).
+- The helper reverts with `BasketsMismatch` unless `baskets.length`, `basketsTargetWeights.length`, and `basketAssets.length` are all equal and every `basketAssets[i].length` matches `basketsTargetWeights[i].length`.
+- `_isTargetWeightMet` relies on these checks before looping over `basketAssets[i][j]` using the target weight length (lines 1045‑1128). Thus any mismatch fails fast with `BasketsMismatch`, preventing out-of-bounds reads.
+- Reports that a malformed weight array can freeze rebalances via array overflows are false unless these lines change.
