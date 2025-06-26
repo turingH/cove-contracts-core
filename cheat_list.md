@@ -14,3 +14,11 @@ This file summarizes recurring patterns and repository-specific details that can
 - Pending redemptions are fulfilled by calculating a withdrawal amount (lines 648‑678 of `BasketManagerUtils.sol`) and calling `BasketToken.fulfillRedeem`, which burns shares and transfers assets from the BasketManager back to the token. This withdrawal logic is separate from the deposit flow above.
 
 Use these references when assessing reports about deposit or redemption logic.
+
+## Oracle Quote Precision
+
+- All price oracles in the repository operate using **18‑decimal** precision (WAD).
+- `AnchoredOracle` defines `_WAD = 1e18` (`src/oracles/AnchoredOracle.sol` lines 20‑23) and passes values in this format when fetching and validating quotes.
+- The testing `MockPriceOracle` returns quotes scaled by 1e18 (`test/utils/mocks/MockPriceOracle.sol` lines 13‑23), matching the production expectation.
+- `BasketManagerUtils` converts asset balances to USD by calling `EulerRouter.getQuote` and then mixes those results with `_WEIGHT_PRECISION = 1e18` (`src/libraries/BasketManagerUtils.sol` lines 60‑64 and 1188‑1207).
+- Therefore, any report claiming that oracle quotes use a 6‑decimal format or that a 6/18 decimal mismatch exists is incorrect unless new code explicitly changes the quote precision.
