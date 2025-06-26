@@ -53,6 +53,7 @@ Use these references when assessing reports about deposit or redemption logic.
 
 - `completeRebalance` (`src/libraries/BasketManagerUtils.sol` line 395) ends the rebalance after the mandatory delay.
 - `_processExternalTrades` (line 420) applies the amounts returned from `_completeTokenSwap` to `basketBalanceOf`.
+- The nested loops inside this function increment their counters (`++j` at line 761 and `++i` at line 766) so execution always progresses; reports of missing increments causing an infinite loop are false unless these lines change.
 - The balances are then re-evaluated via `_initializeBasketData` and `_isTargetWeightMet` (lines 428‑444). If any basket weight deviates beyond `weightDeviationLimit`, the function reverts and sets the status back to `REBALANCE_PROPOSED`.
 - `_validateExternalTrades` (lines 908‑991) merely simulates trades using their `minAmount`; the final weight check in `completeRebalance` must still pass with real claimed amounts.
 - As a result, finalization without calling `executeTokenSwap` is only possible when the baskets already meet their target weights or when the retry limit (`self.retryLimit`) has been reached.  Otherwise `_isTargetWeightMet` fails and the rebalance restarts.
