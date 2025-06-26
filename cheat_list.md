@@ -84,3 +84,9 @@ Use these references when assessing reports about deposit or redemption logic.
 - Since rebalances are entered and exited using the same weight deviation check, dust‑level deposits or redeems cannot
   force infinite rebalance loops. Reports of contradictory thresholds causing DoS are outdated unless
   `_isRebalanceRequired` returns.
+## Basket Asset Updates
+
+- `BasketManager.updateBitFlag` rewrites `basketAssetToIndexPlusOne` whenever a basket's bitFlag changes. The new bitFlag must include the current one, preventing asset removal (`src/BasketManager.sol` lines 623-625 and 639-650).
+- `createNewBasket` initializes the mapping for all assets at deployment (`src/libraries/BasketManagerUtils.sol` lines 210-218).
+- No other function mutates `basketAssets[basket]` or this mapping, so indices stay consistent with the asset array.
+- Reports that deleted assets leave stale `basketAssetToIndexPlusOne` entries are false unless this logic changes.
