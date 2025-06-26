@@ -77,10 +77,15 @@ Use these references when assessing reports about deposit or redemption logic.
 
 ## Rebalance Threshold Logic
 
-- Commit `0b02ae8` removed the `_isRebalanceRequired` helper that used raw balance differences to trigger rebalances.
-- `proposeTokenSwap` now relies solely on `_isTargetWeightMet` and reverts when weights deviate beyond
-  `weightDeviationLimit` (see lines 378‑385 of `src/libraries/BasketManagerUtils.sol`).
-- `completeRebalance` also checks `_isTargetWeightMet` before finalising the rebalance (lines 430‑444 of the same file).
-- Since rebalances are entered and exited using the same weight deviation check, dust‑level deposits or redeems cannot
-  force infinite rebalance loops. Reports of contradictory thresholds causing DoS are outdated unless
-  `_isRebalanceRequired` returns.
+ - Commit `0b02ae8` removed the `_isRebalanceRequired` helper that used raw balance differences to trigger rebalances.
+- `proposeTokenSwap` now relies solely on `_isTargetWeightMet` and reverts when weights deviate beyond `weightDeviationLimit` (see lines 378-385 of `src/libraries/BasketManagerUtils.sol`).
+- `completeRebalance` also checks `_isTargetWeightMet` before finalising the rebalance (lines 430-444 of the same file).
+- Since rebalances are entered and exited using the same weight deviation check, dust-level deposits or redeems cannot force infinite rebalance loops. Reports of contradictory thresholds causing DoS are outdated unless `_isRebalanceRequired` returns.
+
+## Rebalance Step Delay Tracking
+
+- `proposeTokenSwap` sets `rebalanceStatus.timestamp = uint40(block.timestamp)` when trades are proposed (`src/libraries/BasketManagerUtils.sol` lines 368-371).
+- `BasketManager.executeTokenSwap` refreshes the timestamp after verifying trades (`src/BasketManager.sol` lines 432-436).
+- `completeRebalance` enforces the delay via `block.timestamp - self.rebalanceStatus.timestamp < self.stepDelay` (`src/libraries/BasketManagerUtils.sol` lines 410-414).
+- Because the timestamp is updated on each step, the waiting period is measured from the most recent action. Claims that the delay starts only at proposal time are incorrect unless these lines change.
+
