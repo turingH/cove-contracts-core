@@ -2322,6 +2322,28 @@ contract BasketManagerTest is BaseTest {
         basketManager.proposeTokenSwap(internalTrades, externalTrades, targetBaskets, targetWeights, basketAssets);
     }
 
+    function test_proposeTokenSwap_revertWhen_AssetWeightLengthMismatch() public {
+        address basket = _setupSingleBasketAndMocks();
+        address[] memory targetBaskets = new address[](1);
+        targetBaskets[0] = basket;
+        vm.prank(rebalanceProposer);
+        basketManager.proposeRebalance(targetBaskets);
+
+        InternalTrade[] memory internalTrades = new InternalTrade[](1);
+        ExternalTrade[] memory externalTrades = new ExternalTrade[](1);
+        uint64[][] memory targetWeights = new uint64[][](1);
+        targetWeights[0] = new uint64[](2);
+        targetWeights[0][0] = 0.5e18;
+        targetWeights[0][1] = 0.5e18;
+        address[][] memory basketAssets = new address[][](1);
+        basketAssets[0] = new address[](1);
+        basketAssets[0][0] = rootAsset;
+
+        vm.expectRevert(BasketManagerUtils.BasketsMismatch.selector);
+        vm.prank(tokenswapProposer);
+        basketManager.proposeTokenSwap(internalTrades, externalTrades, targetBaskets, targetWeights, basketAssets);
+    }
+
     function testFuzz_proposeTokenSwap_revertWhen_internalTradeBasketNotFound(
         uint256 sellWeight,
         uint256 depositAmount,

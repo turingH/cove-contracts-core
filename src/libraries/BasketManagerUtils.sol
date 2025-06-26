@@ -1005,9 +1005,19 @@ library BasketManagerUtils {
         if (self.rebalanceStatus.basketHash != basketHash) {
             revert BasketsMismatch();
         }
-        // Check that the length matches
+        // Check that the outer lengths match
         if (baskets.length != basketsTargetWeights.length || baskets.length != basketAssets.length) {
             revert BasketsMismatch();
+        }
+        // Ensure that each basket asset list matches its target weights length
+        uint256 len = baskets.length;
+        for (uint256 i = 0; i < len;) {
+            if (basketAssets[i].length != basketsTargetWeights[i].length) {
+                revert BasketsMismatch();
+            }
+            unchecked {
+                ++i;
+            }
         }
     }
 
