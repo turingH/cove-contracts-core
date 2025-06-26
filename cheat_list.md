@@ -18,9 +18,11 @@ automated reviews.
 
 ## Redemption Processing
 
-- Pending redemptions are processed in `BasketManagerUtils.sol` lines 648‑678. The function calculates a
-  `withdrawAmount` capped by the BasketManager's base-asset balance (lines 664‑665) and then calls
-  `BasketToken.fulfillRedeem` to burn shares and transfer assets.
+- Pending redemptions are processed in `BasketManagerUtils.sol` lines 648‑678. The function converts the
+  USD value owed to redeemers back into the basket's base asset using
+  `eulerRouter.getQuote` (lines 659‑663) and stores the result in `withdrawAmount`.
+- `withdrawAmount` is capped by the BasketManager's base‑asset balance (lines 664‑665) before
+  calling `BasketToken.fulfillRedeem` to burn shares and transfer assets.
 - No function pulls funds from external strategies when fulfilling redemptions; the assets are already held by the
   BasketManager.
 
@@ -108,3 +110,10 @@ Use these references when assessing reports about deposit or redemption logic.
   reflect the assets held by the basket. Reports that the pause mechanism can be
   bypassed by tampering with `BasketToken.bitFlag()` are therefore false unless
   these lines change.
+
+## Basket Array Length Verification
+
+- `_validateBasketHash` (`src/libraries/BasketManagerUtils.sol` lines 994-1021) is called from `proposeTokenSwap` (line 362) and `completeRebalance` (line 409).
+- The helper reverts with `BasketsMismatch` unless `baskets.length`, `basketsTargetWeights.length`, and `basketAssets.length` are all equal and every `basketAssets[i].length` matches `basketsTargetWeights[i].length`.
+- `_isTargetWeightMet` relies on these checks before looping over `basketAssets[i][j]` using the target weight length (lines 1045‑1128). Thus any mismatch fails fast with `BasketsMismatch`, preventing out-of-bounds reads.
+- Reports that a malformed weight array can freeze rebalances via array overflows are false unless these lines change.
