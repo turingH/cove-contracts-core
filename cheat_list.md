@@ -84,3 +84,11 @@ Use these references when assessing reports about deposit or redemption logic.
 - Since rebalances are entered and exited using the same weight deviation check, dust‑level deposits or redeems cannot
   force infinite rebalance loops. Reports of contradictory thresholds causing DoS are outdated unless
   `_isRebalanceRequired` returns.
+## External Trade Validation Gas Limits
+
+- `proposeTokenSwap` calls `_validateExternalTrades` before recording the trade hash.
+- `_validateExternalTrades` iterates over every `ExternalTrade` and each entry in `basketTradeOwnership` while also calling `EulerRouter.getQuote` inside the inner loop (`src/libraries/BasketManagerUtils.sol` lines 917‑975).
+- These nested loops are expensive; extremely large arrays would exhaust gas in `proposeTokenSwap` itself and revert before any state is stored.
+- Because the arrays cannot be persisted when that validation fails, `_processExternalTrades` will never run with sizes large enough to exceed the block gas limit.
+- Reports claiming a permanent DoS due to unbounded loops in `_processExternalTrades` are false unless `_validateExternalTrades` is bypassed or removed.
+
