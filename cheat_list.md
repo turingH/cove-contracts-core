@@ -60,6 +60,9 @@ Use these references when assessing reports about deposit or redemption logic.
 - Token swaps are implemented solely through `CoWSwapAdapter`. This contract loops over each `ExternalTrade` once and increments the loop counter after every iteration.
 - `executeTokenSwap` uses `for (uint256 i = 0; i < externalTrades.length;)` and increments `i` inside the loop (`src/swap_adapters/CoWSwapAdapter.sol` lines 79‑95).
 - `completeTokenSwap` follows the same pattern (`src/swap_adapters/CoWSwapAdapter.sol` lines 106‑137).
+- The repository contains an abstract `TokenSwapAdapter` (`src/swap_adapters/TokenSwapAdapter.sol` lines 1‑29), but the only concrete implementation is `CoWSwapAdapter`.
+- No contract imports `IUniswapV3Pool` or references tick-based functions such as `slot0` or `TickMath`; a repository-wide search returns zero matches.
+- Therefore, reports involving Uniswap V3 price ticks or liquidity ranges do not apply unless new files introducing such interactions appear.
 - There is no function named `_processSwapPath` or any branch that `continue`s without advancing the index. Claims of an infinite loop due to skipped tokens are false unless new code introducing such logic appears.
 - The balances are then re-evaluated via `_initializeBasketData` and `_isTargetWeightMet` (lines 428‑444). If any basket
   weight deviates beyond `weightDeviationLimit`, the function reverts and sets the status back to `REBALANCE_PROPOSED`.
@@ -81,6 +84,5 @@ Use these references when assessing reports about deposit or redemption logic.
 - `proposeTokenSwap` now relies solely on `_isTargetWeightMet` and reverts when weights deviate beyond
   `weightDeviationLimit` (see lines 378‑385 of `src/libraries/BasketManagerUtils.sol`).
 - `completeRebalance` also checks `_isTargetWeightMet` before finalising the rebalance (lines 430‑444 of the same file).
-- Since rebalances are entered and exited using the same weight deviation check, dust‑level deposits or redeems cannot
-  force infinite rebalance loops. Reports of contradictory thresholds causing DoS are outdated unless
-  `_isRebalanceRequired` returns.
+ - Since rebalances are entered and exited using the same weight deviation check, dust‑level deposits or redeems cannot
+   force infinite rebalance loops. Reports of contradictory thresholds causing DoS are outdated unless `_isRebalanceRequired` is reintroduced.
