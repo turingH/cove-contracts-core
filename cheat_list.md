@@ -83,4 +83,28 @@ Use these references when assessing reports about deposit or redemption logic.
 - `completeRebalance` also checks `_isTargetWeightMet` before finalising the rebalance (lines 430‑444 of the same file).
 - Since rebalances are entered and exited using the same weight deviation check, dust‑level deposits or redeems cannot
   force infinite rebalance loops. Reports of contradictory thresholds causing DoS are outdated unless
-  `_isRebalanceRequired` returns.
+ `_isRebalanceRequired` returns.
+
+## BasketToken BitFlag Management
+
+- Basket tokens are deployed as clones of a fixed implementation stored in
+  `_bmStorage.basketTokenImplementation` when `BasketManager` is constructed
+  (`src/BasketManager.sol` lines 146‑176). This implementation address cannot be
+  changed later.
+- Each `BasketToken` stores its asset selection in the `bitFlag` state variable
+  (`src/BasketToken.sol` line 124) which is set during `initialize` when the
+  basket is created (`src/libraries/BasketManagerUtils.sol` lines 170‑223).
+- The only way to modify a basket's bitFlag after creation is via
+  `BasketManager.updateBitFlag` (`src/BasketManager.sol` lines 606‑659), which is
+  restricted to the `_TIMELOCK_ROLE` and simultaneously updates the manager's
+  `basketAssets` mappings.
+- `BasketToken.setBitFlag` (`src/BasketToken.sol` lines 496‑504) enforces that
+  only the Basket Manager can change the flag by calling `_onlyBasketManager`
+  (`src/BasketToken.sol` lines 669‑672).
+- Because the bitFlag cannot be arbitrarily altered or provided by user-controlled
+  implementations, checks such as
+  `AssetRegistry.hasPausedAssets(BasketToken(basket).bitFlag())` in
+  `proposeRebalance` (`src/libraries/BasketManagerUtils.sol` line 265) correctly
+  reflect the assets held by the basket. Reports that the pause mechanism can be
+  bypassed by tampering with `BasketToken.bitFlag()` are therefore false unless
+  these lines change.
