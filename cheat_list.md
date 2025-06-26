@@ -18,9 +18,11 @@ automated reviews.
 
 ## Redemption Processing
 
-- Pending redemptions are processed in `BasketManagerUtils.sol` lines 648‑678. The function calculates a
-  `withdrawAmount` capped by the BasketManager's base-asset balance (lines 664‑665) and then calls
-  `BasketToken.fulfillRedeem` to burn shares and transfer assets.
+- Pending redemptions are processed in `BasketManagerUtils.sol` lines 648‑678. The function converts the
+  USD value owed to redeemers back into the basket's base asset using
+  `eulerRouter.getQuote` (lines 659‑663) and stores the result in `withdrawAmount`.
+- `withdrawAmount` is capped by the BasketManager's base‑asset balance (lines 664‑665) before
+  calling `BasketToken.fulfillRedeem` to burn shares and transfer assets.
 - No function pulls funds from external strategies when fulfilling redemptions; the assets are already held by the
   BasketManager.
 
