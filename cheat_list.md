@@ -88,6 +88,20 @@ Use these references when assessing reports about deposit or redemption logic.
 
 ## Rebalance Threshold Logic
 
+<<<<<<< codex/判断rebalance提前完成问题是否存在
+ - Commit `0b02ae8` removed the `_isRebalanceRequired` helper that used raw balance differences to trigger rebalances.
+- `proposeTokenSwap` now relies solely on `_isTargetWeightMet` and reverts when weights deviate beyond `weightDeviationLimit` (see lines 378-385 of `src/libraries/BasketManagerUtils.sol`).
+- `completeRebalance` also checks `_isTargetWeightMet` before finalising the rebalance (lines 430-444 of the same file).
+- Since rebalances are entered and exited using the same weight deviation check, dust-level deposits or redeems cannot force infinite rebalance loops. Reports of contradictory thresholds causing DoS are outdated unless `_isRebalanceRequired` returns.
+
+## Rebalance Step Delay Tracking
+
+- `proposeTokenSwap` sets `rebalanceStatus.timestamp = uint40(block.timestamp)` when trades are proposed (`src/libraries/BasketManagerUtils.sol` lines 368-371).
+- `BasketManager.executeTokenSwap` refreshes the timestamp after verifying trades (`src/BasketManager.sol` lines 432-436).
+- `completeRebalance` enforces the delay via `block.timestamp - self.rebalanceStatus.timestamp < self.stepDelay` (`src/libraries/BasketManagerUtils.sol` lines 410-414).
+- Because the timestamp is updated on each step, the waiting period is measured from the most recent action. Claims that the delay starts only at proposal time are incorrect unless these lines change.
+
+=======
 - Commit `0b02ae8` removed the `_isRebalanceRequired` helper that used raw balance differences to trigger rebalances.
 - `proposeTokenSwap` now relies solely on `_isTargetWeightMet` and reverts when weights deviate beyond
   `weightDeviationLimit` (see lines 378‑385 of `src/libraries/BasketManagerUtils.sol`).
@@ -140,3 +154,4 @@ Use these references when assessing reports about deposit or redemption logic.
 - The helper reverts with `BasketsMismatch` unless `baskets.length`, `basketsTargetWeights.length`, and `basketAssets.length` are all equal and every `basketAssets[i].length` matches `basketsTargetWeights[i].length`.
 - `_isTargetWeightMet` relies on these checks before looping over `basketAssets[i][j]` using the target weight length (lines 1045‑1128). Thus any mismatch fails fast with `BasketsMismatch`, preventing out-of-bounds reads.
 - Reports that a malformed weight array can freeze rebalances via array overflows are false unless these lines change.
+>>>>>>> codex-audit
