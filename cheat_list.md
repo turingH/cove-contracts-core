@@ -7,6 +7,11 @@ automated reviews.
 
 - **\_processPendingDeposits** (`src/libraries/BasketManagerUtils.sol` lines 1137‑1179) computes the shares to mint and
   updates `basketBalanceOf` without touching external strategies.
+- When `basketValue` and `totalSupply` are zero, the minted shares equal
+  `pendingDepositValue` returned by `eulerRouter.getQuote` (`src/libraries/BasketManagerUtils.sol`
+  lines 1163‑1168). `pendingDepositValue` uses 18‑decimal USD precision so the
+  share supply aligns with the 18‑decimal `decimals()` in `BasketToken.sol`
+  (lines 1125‑1130).
 - Deposits are finalized by calling `BasketToken.fulfillDeposit`, which transfers the deposited tokens from the
   `BasketToken` contract to the BasketManager (`src/BasketToken.sol` lines 460‑494).
 - `proposeTokenSwap` invokes `_processPendingDeposits` at the start of a rebalance
